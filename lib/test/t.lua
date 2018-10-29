@@ -33,50 +33,50 @@ function T:pass(msg)
 end
 
 function T:fail(msg)
-    luaunit.fail(msg)
+    luaunit.fail(msg or "")
     if self.i ~= 0 then self.i = self.i - 1 end
 end
 
 function T:truthy(a, msg)
-    luaunit.assertEvalToTrue(a, msg)
+    luaunit.assertEvalToTrue(a, msg or "")
     if self.i ~= 0 then self.i = self.i - 1 end
 end
 
 function T:falsy(a, msg)
-    luaunit.assertEvalToFalse(a, msg)
+    luaunit.assertEvalToFalse(a, msg or "")
     if self.i ~= 0 then self.i = self.i - 1 end
 end
 
 function T:assertTrue(a, msg)
-    luaunit.assertTrue(a, msg)
+    luaunit.assertTrue(a, msg or "")
     if self.i ~= 0 then self.i = self.i - 1 end
 end
 
 function T:assertFalse(a, msg)
-    luaunit.assertFalse(a, msg)
+    luaunit.assertFalse(a, msg or "")
     if self.i ~= 0 then self.i = self.i - 1 end
 end
 
 function T:assertIs(a, b, msg)
-    if a ~= b then luaunit.fail(msg) end
+    if a ~= b then luaunit.fail(msg or "") end
 
     if self.i ~= 0 then self.i = self.i - 1 end
 end
 
 function T:assertNot(a, b, msg)
-    if a == b then luaunit.fail(msg) end
+    if a == b then luaunit.fail(msg or "") end
 
     if self.i ~= 0 then self.i = self.i - 1 end
 end
 
 function T:deepEqual(a, b, msg)
-    luaunit.assertEquals(a, b, msg)
+    luaunit.assertEquals(a, b, msg or "")
 
     if self.i ~= 0 then self.i = self.i - 1 end
 end
 
 function T:notDeepEqual(a, b, msg)
-    luaunit.assertNotEquals(a, b, msg)
+    luaunit.assertNotEquals(a, b, msg or "")
 
     if self.i ~= 0 then self.i = self.i - 1 end
 end
