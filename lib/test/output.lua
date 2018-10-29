@@ -16,9 +16,9 @@ local function replace_stack(node)
 
     if String.endsWith(String.split(String.split(msg, ": ")[1], ":")[1], "/t.lua") then
         local lines = Array(String.split(stackTrace, "\n"))
-        local line = lines:splice(2, 2)[2]
+        local line = lines:splice(1, 2)[2]
         line = String.split(line, ": ")[1]
-        lines:splice(2, 0, line)
+        lines:splice(1, 0, line)
 
         local fragments = Array(String.split(msg, ": "))
         fragments[1] = String.trim(line)
