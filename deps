@@ -1,3 +1,3 @@
-luaunit.lua https://github.com/bluebird75/luaunit.git LUAUNIT_V3_3
+luaunit.lua git@git.souche-inc.com:xieda/luaunit.git LUAUNIT_V3_3
 lib/* git@git.souche-inc.com:xieda/lua-utility.git
 lib/* git@git.souche-inc.com:xieda/lua-fs-module.git
