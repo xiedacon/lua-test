@@ -2,6 +2,7 @@
 
 local Object = require "utility.object"
 local Array = require "utility.array"
+local Function = require "utility.function"
 local String = require "utility.string"
 local fs = require "fs"
 
@@ -42,7 +43,10 @@ setmetatable(rewire, {
             if err then error(err) end
 
             if type(res) == "function" then
-                res = setmetatable({}, { __call = res })
+                local _res = res
+                res = setmetatable({}, {
+                    __call = function(self, ...) return Function.apply(_res, {...}) end
+                })
             end
 
             if type(res) == "table" then
