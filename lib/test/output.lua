@@ -63,7 +63,7 @@ function Output:endSuite()
     local line = Array({ Color.green(passed .. " passed") })
 
     if failed > 0 then line:push(Color.red(failed .. " failed")) end
-    if error > 0 then line:push(Color.red(error .. "error")) end
+    if error > 0 then line:push(Color.red(error .. " error")) end
 
     stdout:write("\n" .. line:join(", ") .. "\n")
 end
