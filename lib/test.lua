@@ -8,7 +8,7 @@ local Output = require "test.output"
 local utils = require "test.utils"
 local Runner = require "test.runner"
 
-local test = {}
+local test = { _VERSION = "0.1" }
 
 function test:run(opts)
     local roots = opts.roots
