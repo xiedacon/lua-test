@@ -5,78 +5,84 @@ local Array = require "utility.array"
 local Function = require "utility.function"
 local String = require "utility.string"
 local fs = require "fs"
+local inner_modules = require "test.inner_modules"
 
-local rewire = {}
+return function(name, loaded_modules)
+    local path = package.path
+    local cpath = package.cpath
+    local loaded = Object.assign({}, package.loaded)
 
-setmetatable(rewire, {
-    __call = function(self, module)
-        local file, err = rewire.resolve(module)
-        if not file then error(err) end
-        local content, err = fs.read(file)
-        if not content then error(err) end
+    table.clear(package.loaded)
+    Object.assign(package.loaded, inner_modules, package_loaded or {}, loaded_modules)
 
-        if String.endsWith(file, ".lua") then
-            local lines = Array(String.split(content, "\n"))
-            local env = Object.assign({}, _G)
-            env._G = env
+    package.path = package_path or package.path
+    package.cpath = package_cpath or package.cpath
 
-            local fn, err = load(function()
-                local line = nil
+    local file, err = package.searchpath(name, package.path, ".", "/")
+    if not file then error(err) end
+    if not String.endsWith(file, ".lua") then error("unsupport file: " .. file) end
 
-                while(not line and #lines > 0) do
-                    line = lines:shift()
-                    
-                    if String.startsWith(line, "local ") then
-                        line = String.trimLeft(string.sub(line, 6))
-                    end
-                end
+    local content, err = fs.read(file)
+    if not content then error(err) end
 
-                if line then 
-                    return line .. "\n"
-                else
-                    return line
-                end
-            end, content, "bt", env)
-            if not fn then error(err) end
+    local env = Object.assign({}, _G)
+    env._G = env
+    
+    local lines = Array(String.split(content, "\n"))
+    local fn, err = load(function()
+        local line = nil
 
-            local res, err = fn()
-            if err then error(err) end
-
-            if type(res) == "function" then
-                local _res = res
-                res = setmetatable({}, {
-                    __call = function(self, ...) return Function.apply(_res, {...}) end
-                })
+        while(not line and #lines > 0) do
+            line = lines:shift()
+            
+            if String.startsWith(line, "local ") then
+                line = String.trimLeft(string.sub(line, 6))
             end
-
-            if type(res) == "table" then
-                local index = res
-                local metatable = getmetatable(res)
-
-                while (metatable and metatable.__index) do
-                    index = metatable.__index
-                    metatable = getmetatable(index)
-                end
-
-                setmetatable(index, Object.assign(metatable or {}, {
-                    __index = {
-                        __set__ = function(self, k, v) env[k] = v end,
-                        __get__ = function(self, k) return env[k] end
-                    }
-                }))
-            else
-                error("module should be a table or function")
-            end
-
-            return res
-        else
-            error("unsupport file: " .. file)
         end
+
+        if line then 
+            return line .. "\n"
+        else
+            return line
+        end
+    end, content, "bt", env)
+    if not fn then error(err) end
+
+    local ok, res = pcall(fn)
+
+    package.path = path
+    package.cpath = cpath
+
+    table.clear(package.loaded)
+    Object.assign(package.loaded, loaded)
+
+    if not ok then error(res) end
+
+    if type(res) == "function" then
+        local _res = res
+        res = setmetatable({}, {
+            __call = function(self, ...) return Function.apply(_res, {...}) end
+        })
     end
-})
 
-function rewire.resolve(module)
-    return package.searchpath(module, package.path, ".", "/")
+    if type(res) == "table" then
+        local index = res
+        local metatable = getmetatable(res)
+
+        while (metatable and metatable.__index) do
+            index = metatable.__index
+            metatable = getmetatable(index)
+        end
+
+        setmetatable(index, Object.assign(metatable or {}, {
+            __index = {
+                __set__ = function(self, k, v) env[k] = v end,
+                __get__ = function(self, k) return env[k] end
+            }
+        }))
+    else
+        error("module should be a table or function")
+    end
+
+    return res
 end
-
-return rewire
