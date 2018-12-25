@@ -2,6 +2,7 @@
 
 local fs = require "fs"
 local Array = require "utility.array"
+local String = require "utility.string"
 
 local utils = {}
 
@@ -13,7 +14,11 @@ function utils.tree(root)
 
     local files = Array()
     for i, file_or_dir in ipairs(file_or_dirs) do
-        file_or_dir = root .. "/" .. file_or_dir
+        if String.endsWith(root, "/") then
+            file_or_dir = root .. file_or_dir
+        else
+            file_or_dir = root .. "/" .. file_or_dir
+        end
         local yes = fs.isDir(file_or_dir)
 
         if yes then 

@@ -9,37 +9,33 @@ local T = require "test.t"
 local utils = require "test.utils"
 local Output = require "test.output"
 
-local function new(self, key, fn)
-    if type(key) ~= "string" or key == "" then return false, "key should be a not empty string" end
-    if type(fn) ~= "function" then return false, "fn should be a function" end
+local Runner = {
+    rewire = require "test.rewire",
+    require = require "test.require"
+}
 
-    self.__tests:push({
-        key = self.__test .. ": " .. key,
-        befores = self.__befores,
-        beforeEachs = self.__beforeEachs,
-        fn = fn,
-        afters = self.__afters,
-        afterEachs = self.__afterEachs
-    })
-
-    return self
-end
-
-local Runner = {}
+local proto = {
+    __index = Runner,
+    __call = function (self, key, fn)
+        if type(key) ~= "string" or key == "" then return false, "key should be a not empty string" end
+        if type(fn) ~= "function" then return false, "fn should be a function" end
+    
+        self.__tests:push({
+            key = String.replace(self.__test, self.__root, "") .. ": " .. key,
+            befores = self.__befores,
+            beforeEachs = self.__beforeEachs,
+            fn = fn,
+            afters = self.__afters,
+            afterEachs = self.__afterEachs
+        })
+    
+        return self
+    end
+}
 
 setmetatable(Runner, {
     __call = function(self, root)
         if type(root) ~= "string" then return false, "root should be a string" end
-
-        local path = String.split(package.path, ";"):find(function(path)
-            if ( path and path ~= "" ) and String.startsWith(root, String.slice(path, 0, -5)) then
-                return true
-            else
-                return false
-            end
-        end)
-        if not path then return false, "root: " .. root .. " cannot reach, please append it to package.path first" end
-        path = String.slice(path, 0, -5)
 
         local runner = {
             __tests = Array(),
@@ -55,20 +51,9 @@ setmetatable(Runner, {
 
         runner.__files = files:filter(function(file)
             return String.slice(file, -4) == ".lua"
-        end):map(function(file)
-            return String.slice(
-                String.replace(
-                    String.replace(file, path, ""),
-                    "/",
-                    "."
-                ), 0, -4
-            )
         end)
 
-        setmetatable(runner, {
-            __index = Runner,
-            __call = new
-        })
+        setmetatable(runner, proto)
 
         return runner
     end
@@ -92,7 +77,7 @@ function Runner:__run()
         self.__test = file
 
         local first_index = #self.__tests + 1
-        require(self.__test)
+        loadfile(self.__test)()
         local last_index = #self.__tests
         
         if last_index >= first_index then
