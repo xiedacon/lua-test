@@ -34,7 +34,7 @@ local proto = {
 }
 
 setmetatable(Runner, {
-    __call = function(self, root)
+    __call = function(self, root, extension)
         if type(root) ~= "string" then return false, "root should be a string" end
 
         local runner = {
@@ -50,7 +50,7 @@ setmetatable(Runner, {
         if not files then return nil, err end
 
         runner.__files = files:filter(function(file)
-            return String.slice(file, -4) == ".lua"
+            return String.slice(file, 0 - #extension) == extension
         end)
 
         setmetatable(runner, proto)
