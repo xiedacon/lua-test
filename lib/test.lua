@@ -17,10 +17,18 @@ function test:run(opts)
     local package_cpath = opts.package_cpath
     local package_loaded = opts.package_loaded
     local extension = opts.extension
+    local output = opts.output or Output()
     if type(roots) == "string" then roots = {roots } end
     if type(roots) ~= "table" then return false, "opts.roots should be a string or table" end
-    if package_path and type(package_path) ~= "string" then return false, "" end
+    if package_path and type(package_path) ~= "string" then return false, "opts.package_path should be a string or nil" end
+    if package_cpath and type(package_cpath) ~= "string" then return false, "opts.package_cpath should be a string or nil" end
     if type(extension) ~= "string" then extension = ".lua" end
+    if type(output) ~= "table" then return false, "opts.output should be a table" end
+    if type(output.startRunner) ~= "function" then return false, "opts.output.startRunner should be a function" end
+    if type(output.startTest) ~= "function" then return false, "opts.output.startTest should be a function" end
+    if type(output.error) ~= "function" then return false, "opts.output.error should be a function" end
+    if type(output.endTest) ~= "function" then return false, "opts.output.endTest should be a function" end
+    if type(output.endRunner) ~= "function" then return false, "opts.output.endRunner should be a function" end
 
     local loaded = Object.assign({}, package.loaded)
     local runner
@@ -33,7 +41,7 @@ function test:run(opts)
         _G.package_cpath = package_cpath
         _G.package_loaded = package_loaded
 
-        runner, err = require "test.runner" (root, extension)
+        runner, err = require "test.runner" (root, extension, output)
         package.loaded["test"] = runner
 
         if not runner then return true end
