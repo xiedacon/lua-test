@@ -2,7 +2,10 @@
 
 local fs = require "fs"
 local Array = require "utility.array"
+local Function = require "utility.function"
 local String = require "utility.string"
+
+local Error = require "test.error"
 
 local utils = {}
 
@@ -42,6 +45,75 @@ function utils.combine(fns)
             fn()
         end)
     end
+end
+
+function utils.call(...)
+    local args = Array({...})
+    args:splice(1, 0, function(err)
+        return Error("unknow", err)
+    end)
+
+    local ok, err = Function.apply(xpcall, args)
+    if not ok then
+        error(err)
+    end
+end
+
+local cache = setmetatable({}, {
+    __index = {
+        get = function(self, accpet, expect)
+            return (self[accpet] or {})[expect]
+        end,
+        set = function(self, accpet, expect, value, asymmetric)
+            local map = self[accpet] or {}
+            if not map then map = {} end
+
+            map[expect] = value
+            self[accpet] = map
+
+            if not asymmetric then
+                self:set(expect, accpet, value, true)
+            end
+
+            return value
+        end,
+        clear = function(self)
+            table.clear(self)
+            return self
+        end
+    }
+})
+
+function utils.deepEqual(accpet, expect, not_first)
+    local type_a, type_e = type(accpet), type(expect)
+    if type_a ~= type_e then return false end
+    if type_a ~= "table" then return accpet == expect end
+
+    if not not_first then cache:clear() end
+    if accpet == expect then return cache:set(accpet, expect, true) end
+
+    local equal = cache:get(accpet, expect)
+    if equal ~= nil then return equal end
+
+    cache:set(accpet, expect, false)
+    if #accpet ~= #expect then return false end
+
+    local keyMatched = {}
+    for k, v in pairs(accpet) do
+        if utils.deepEqual(v, expect[k], true) then
+            keyMatched[k] = true
+        else
+            return false
+        end
+    end
+
+    for k, v in pairs(expect) do
+        if not keyMatched[k] then
+            return false
+        end
+    end
+
+    return cache:set(accpet, expect, true)
 end
 
 return utils

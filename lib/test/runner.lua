@@ -7,7 +7,6 @@ local fs = require "fs"
 
 local T = require "test.t"
 local utils = require "test.utils"
-local Output = require "test.output"
 
 local Runner = {
     rewire = require "test.rewire",
@@ -26,7 +25,8 @@ local proto = {
             beforeEachs = self.__beforeEachs,
             fn = fn,
             afters = self.__afters,
-            afterEachs = self.__afterEachs
+            afterEachs = self.__afterEachs,
+            pass = nil
         })
     
         return self
@@ -34,10 +34,12 @@ local proto = {
 }
 
 setmetatable(Runner, {
-    __call = function(self, root, extension)
+    __call = function(self, root, extension, output)
         if type(root) ~= "string" then return false, "root should be a string" end
 
         local runner = {
+            __output = output,
+            __failures = Array(),
             __tests = Array(),
             __root = root,
             __befores = Array(),
@@ -91,26 +93,37 @@ function Runner:__run()
         self.__afterEachs = Array()
     end)
 
-    self.__tests = self.__tests:map(function(test)
-        return {
-            test.key,
-            function()
-                if test.first then utils.combine(test.befores)()  end
-                utils.combine(test.beforeEachs)()
+    self.root = self.__root
+    self.tests = self.__tests
+    self.failures = self.__failures
 
-                local t = T(test)
-                test.fn(t)
-                if t.i ~= 0 then luaunit.fail("planed: " .. tostring(t.total) .. " assert, expected: " .. tostring(t.total - t.i) .. " assert") end
+    local output = self.__output
+    output:startRunner(self)
+    self.__tests:each(function(test)
+        output:startTest(test)
+        local ok, err = pcall(function()
+            if test.first then utils.call(utils.combine(test.befores)) end
+            utils.call(utils.combine(test.beforeEachs))
 
-                utils.combine(test.afterEachs)()
-                if test.last then utils.combine(test.afters)()  end
-            end
-        }
+            local t = T(test)
+            utils.call(test.fn, t)
+            t:done()
+
+            utils.call(utils.combine(test.afterEachs))
+            if test.last then utils.call(utils.combine(test.afters)) end
+        end)
+
+        if not ok then
+            test.pass = false
+            self.failures:push(test)
+            output:error(err, test)
+        else
+            test.pass = true
+        end
+
+        output:endTest(test)
     end)
-
-    local runner = luaunit.LuaUnit.new()
-    runner.outputType = Output
-    runner:runSuiteByInstances(self.__tests)
+    output:endRunner(self)
 end
 
 return Runner

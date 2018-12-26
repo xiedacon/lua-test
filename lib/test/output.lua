@@ -1,71 +1,65 @@
 -- Copyright (c) 2018, Souche Inc.
 
-local luaunit = require "luaunit"
-
-local Color = require "test.color"
-
 local String = require "utility.string"
 local Array = require "utility.array"
 
-local genericOutput = luaunit.genericOutput
-local stdout = io.stdout
+local Color = require "test.color"
+local json = require "pretty.json"
 
-local function replace_stack(node)
-    local msg = node.msg
-    local stackTrace = node.stackTrace
+local Output = {}
 
-    if String.endsWith(String.split(String.split(msg, ": ")[1], ":")[1], "/t.lua") then
-        local lines = Array(String.split(stackTrace, "\n"))
-        local line = lines:splice(1, 2)[2]
-        line = String.split(line, ": ")[1]
-        lines:splice(1, 0, line)
+setmetatable(Output, {
+    __call = function(self, stdout)
+        stdout = stdout or io.stdout
 
-        local fragments = Array(String.split(msg, ": "))
-        fragments[1] = String.trim(line)
+        if type(stdout.write) ~= "function" then return false, "stdout.write should be a function" end
 
-        node.msg = table.concat(fragments, ": ")
-        node.stackTrace = table.concat(lines, "\n")
+        return setmetatable({ stdout = stdout }, { __index = self })
     end
+})
+
+function Output:startRunner(runner)
+    self.stdout:write("\n Start tests in " .. runner.root .. "\n\n")
 end
 
-local Output = genericOutput.new()
-
-function Output.new(runner)
-    return setmetatable(genericOutput.new(runner), { __index = Output })
+function Output:startTest(test)
 end
 
-function Output:startSuite()
+function Output:error(err, test)
+    local stdout = self.stdout
+    local space = "\n     "
+
+    stdout:write(Color.red("✖"), "  ", test.key)
+    stdout:write(space, err.msg and tostring(err.msg) or ("Failed to execute t." .. err.type))
+    if err.expect then
+        stdout:write(space, "expect: ", space, Array(String.split(json.stringify(err.expect, nil, 4, true), "\n")):join(space), "\n")
+    end
+    if err.accpet then
+        stdout:write(space, "accpet: ", space, Array(String.split(json.stringify(err.accpet, nil, 4, true), "\n")):join(space), "\n")
+    end
+    if err.type ~= "plan" then
+        stdout:write(space, Array(String.split(err.stack, "\n\t")):join(space .. "  "))
+    end
     stdout:write("\n")
 end
 
-function Output:startTest(testName) end
+function Output:endTest(test)
+    local stdout = self.stdout
 
-function Output:addStatus( node )
-    replace_stack(node)
-end
-
-function Output:endTest( node )
-    if node:isPassed() then
-        stdout:write(Color.green("✔") .. "  ", node.testName , "\n")
+    if test.pass then
+        stdout:write(Color.green("✔"), "  ", test.key, "\n")
     else
-        stdout:write(Color.red("✖") .. "  ", node.testName, "\n")
-        stdout:write("     " .. node.msg .. "\n")
-        stdout:write("     " .. Array(String.split(node.stackTrace, "\n\t")):join("\n       ") .. "\n")
+        stdout:write("\n")
     end
 end
 
-function Output:endSuite()
-    local result = self.result
-    local failed = #result.failures
-    local error = #result.errors
-    local passed = #result.tests - failed - error
+function Output:endRunner(runner)
+    local failed = #runner.failures
+    local passed = #runner.tests - failed
 
     local line = Array({ Color.green(passed .. " passed") })
-
     if failed > 0 then line:push(Color.red(failed .. " failed")) end
-    if error > 0 then line:push(Color.red(error .. " error")) end
-
-    stdout:write("\n" .. line:join(", ") .. "\n")
+    self.stdout:write("\n" .. line:join(", ") .. "\n")
 end
 
 return Output
