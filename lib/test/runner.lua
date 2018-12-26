@@ -1,6 +1,5 @@
 -- Copyright (c) 2018, Souche Inc.
 
-local luaunit = require "luaunit"
 local Array = require "utility.array"
 local String = require "utility.string"
 local fs = require "fs"
