@@ -1,4 +1,4 @@
-# lua-utility
+# lua-test
 
 [![MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/xiedacon/lua-test/blob/master/LICENSE)
 
