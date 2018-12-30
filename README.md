@@ -4,9 +4,9 @@
 
 ## Requirements
 
-* luaunit
 * lua-utility
 * lua-fs-module
+* lua-pretty-json
 
 ## Usage
 
