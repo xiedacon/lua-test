@@ -46,17 +46,19 @@ return function(name, loaded_modules)
             return line
         end
     end, content, "bt", env)
-    if not fn then error(err) end
 
-    local ok, res = pcall(fn)
-
+    local ok, res
+    if type(fn) == "function" then
+        ok, res = pcall(fn)
+    end
+    
     package.path = path
     package.cpath = cpath
 
     table.clear(package.loaded)
     Object.assign(package.loaded, loaded)
 
-    if not ok then error(res) end
+    if type(fn) ~= "function" or not ok then error(err or res) end
 
     if type(res) == "function" then
         local _res = res
