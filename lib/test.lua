@@ -17,7 +17,7 @@ function test:run(opts)
     local package_cpath = opts.package_cpath
     local package_loaded = opts.package_loaded
     local extension = opts.extension
-    local output = opts.output or Output()
+    local output = opts.output or Output(opts.stdout or io.stdout)
     if type(roots) == "string" then roots = {roots } end
     if type(roots) ~= "table" then return false, "opts.roots should be a string or table" end
     if package_path and type(package_path) ~= "string" then return false, "opts.package_path should be a string or nil" end
